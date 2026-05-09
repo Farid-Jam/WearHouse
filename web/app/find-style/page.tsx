@@ -73,7 +73,7 @@ export default function FindStylePage() {
       </section>
 
       <section
-        className="relative px-8 md:px-16 pb-24"
+        className="relative px-8 md:px-16 pt-5 pb-24"
         style={{ backgroundColor: '#ffe8d6' }}
       >
         <ColorAnalysis />

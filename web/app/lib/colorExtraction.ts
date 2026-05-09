@@ -102,24 +102,24 @@ export function extractColors(
 
   // ── Eyes ────────────────────────────────────────────────────────────────
   // Sample each iris individually, then average the two RGB values.
-  // Averaging the two iris *positions* first (the previous approach) gave a
-  // point on the nose bridge, not inside either eye.
-  const eyeSize = roi * 0.55;
+  // maxLum=210: excludes only the brightest sclera (lum ~230+) while keeping
+  // light blue/gray eyes whose luminance can reach ~185–205.
+  const eyeSize = roi * 0.4;
 
   let eyeSamples: RGB[];
   if (lm.length > 473) {
     // 478-point model includes dedicated iris-center landmarks
     eyeSamples = [
-      sampleROI(ctx, lx(468), ly(468), eyeSize, eyeSize * 0.6, W, H), // right iris
-      sampleROI(ctx, lx(473), ly(473), eyeSize, eyeSize * 0.6, W, H), // left iris
+      sampleROI(ctx, lx(468), ly(468), eyeSize, eyeSize * 0.5, W, H, 20, 210), // right iris
+      sampleROI(ctx, lx(473), ly(473), eyeSize, eyeSize * 0.5, W, H, 20, 210), // left iris
     ].filter((s): s is RGB => s !== null);
   } else {
     // Fallback: approximate each iris center from eye-corner landmarks
     // Right eye: outer corner 33, inner corner 133
     // Left eye:  outer corner 263, inner corner 362
     eyeSamples = [
-      sampleROI(ctx, (lx(33) + lx(133)) / 2, (ly(33) + ly(133)) / 2, eyeSize, eyeSize * 0.6, W, H),
-      sampleROI(ctx, (lx(263) + lx(362)) / 2, (ly(263) + ly(362)) / 2, eyeSize, eyeSize * 0.6, W, H),
+      sampleROI(ctx, (lx(33) + lx(133)) / 2, (ly(33) + ly(133)) / 2, eyeSize, eyeSize * 0.5, W, H, 20, 210),
+      sampleROI(ctx, (lx(263) + lx(362)) / 2, (ly(263) + ly(362)) / 2, eyeSize, eyeSize * 0.5, W, H, 20, 210),
     ].filter((s): s is RGB => s !== null);
   }
 
@@ -130,15 +130,19 @@ export function extractColors(
         b: eyeSamples.reduce((s, c) => s + c.b, 0) / eyeSamples.length,
       }
     : null;
-  const eye = eyeRaw ?? skin;
+  // Neutral brown fallback — never fall back to skin, which biases the analysis
+  const eye = eyeRaw ?? { r: 85, g: 65, b: 50 };
 
   // ── Hair ────────────────────────────────────────────────────────────────
-  // Sample above the topmost face landmark (10) — relaxed luminance ceiling
-  // so darker hair isn't discarded by the highlight filter.
+  // Sample above the topmost face landmark (10). Moved higher (2.0× roi) so
+  // the ROI clears the forehead and lands reliably on actual hair.
   const hairCX = lx(10);
-  const hairCY = ly(10) - roi * 1.3;
-  const hairRaw = sampleROI(ctx, hairCX, hairCY, roi * 2, roi, W, H, 15, 200);
-  const hair = hairRaw ?? { r: 58, g: 48, b: 42 }; // neutral dark-brown fallback
+  const hairCY = ly(10) - roi * 2.0;
+  // maxLum=230: raised from 200 so light blonde hair (lum ~200–220) isn't filtered
+  // to null and replaced by the dark fallback, which was biasing everyone toward deep seasons.
+  // minLum=10: lowered slightly to capture near-black hair.
+  const hairRaw = sampleROI(ctx, hairCX, hairCY, roi * 2, roi, W, H, 10, 230);
+  const hair = hairRaw ?? { r: 100, g: 80, b: 62 }; // medium neutral brown — won't bias depth score
 
   return { skin, eye, hair };
 }

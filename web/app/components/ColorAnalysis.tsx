@@ -385,11 +385,11 @@ export default function ColorAnalysis() {
           }}
         >
           {uploadedPhoto ? (
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', aspectRatio: '16 / 9', backgroundColor: '#0a0a0a' }}>
               <img
                 src={uploadedPhoto}
                 alt="Uploaded"
-                style={{ width: '100%', maxHeight: '480px', objectFit: 'cover', display: 'block' }}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
               />
               <button
                 type="button"
